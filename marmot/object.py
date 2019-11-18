@@ -10,4 +10,16 @@ __status__ = "Development"
 
 
 class Object:
-    pass
+    """Base object class."""
+
+    def __init__(self, name):
+        """
+        Creates an instance of Object.
+
+        Parameters
+        ----------
+        name : str
+            Name of object.
+        """
+
+        self.name = name

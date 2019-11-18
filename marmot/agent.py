@@ -10,4 +10,16 @@ __status__ = "Development"
 
 
 class Agent:
-    pass
+    """Base agent class."""
+
+    def __init__(self, name):
+        """
+        Creates an instance of Agent.
+
+        Parameters
+        ----------
+        name : str
+            Name of agent.
+        """
+
+        self.name = name
