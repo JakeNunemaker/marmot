@@ -2,9 +2,6 @@
 
 __author__ = "Jake Nunemaker"
 __copyright__ = "Copyright 2019, Jake Nunemaker"
-__credits__ = ""
-# __version__ = "0.0.1"
-__maintainer__ = "Jake Nunemaker"
 __email__ = "jake.d.nunemaker@gmail.com"
 __status__ = "Development"
 
@@ -15,9 +12,6 @@ from .object import Object
 
 class Environment:
     """Base environment class."""
-
-    _agents = []
-    _objects = []
 
     def __init__(self, name="Environment"):
         """
@@ -31,6 +25,11 @@ class Environment:
         """
 
         self.name = name
+        self._agents = {}
+        self._objects = []
+
+    def __repr__(self):
+        return self.name
 
     def register(self, instance):
         """
@@ -45,33 +44,68 @@ class Environment:
             Instance to be registered.
         """
 
-        if isinstance(instance, Object):
-            self._objects.append(instance)
+        if isinstance(instance, Agent):
+            self._register_agent(instance)
 
-        elif isinstance(instance, Agent):
-            self._agents.append(instance)
+        elif isinstance(instance, Object):
+            self._register_object(instance)
 
         else:
             raise RegistrationFailed(instance)
 
-    def deregister(self, instance):
+    def _register_agent(self, agent):
         """
-        Deregisters an instance from the environment, removing it from the list
-        of currently activated instances.
+        Agent registration process.
 
         Parameters
         ----------
-        instance : `Agent` | `Object`
-            Instance to be registered.
+        agent : `Agent`
+            Agent to be registered.
         """
 
-        pass
+        if str(agent) in self._agents.keys():
+            raise RegistrationConflict(self, agent)
+
+        agent.env = self
+        self._agents[str(agent)] = agent
+
+    def _register_object(self, obj):
+        """
+        Object registration process.
+
+        Parameters
+        ----------
+        obj : `Object`
+            Object to be registered.
+        """
+
+        obj.env = self
+        self._objects.append(obj)
+
+    def deregister(self, name):
+        """
+        Deregisters an `Agent` from the environment, removing it from the list
+        of currently reserved agent names.
+
+        Parameters
+        ----------
+        name : str
+            Agent to be deregistered.
+        """
+
+        agent = self._agents.pop(str(name), None)
+        if agent is None:
+            print(f"Agent '{name}' not found in active agents.")
+            return
+
+        agent.env = None
+        print(f"Agent '{name}' deregistered from '{self.name}'.")
 
     @property
     def active_agents(self):
         """Returns list of currently registered agents."""
 
-        return self._agents
+        return self._agents.values()
 
     @property
     def active_objects(self):
@@ -83,17 +117,24 @@ class Environment:
 class RegistrationConflict(Exception):
     """Error for conflicting agent names."""
 
-    def __init__(self, agent):
+    def __init__(self, env, agent):
         """
         Creates an instance of RegistrationConflict.
 
         Parameters
         ----------
-        agent : str
-            Conflicting agent name.
+        env : `Environment`
+            Environment where conflict occured.
+        agent : `Agent`
+            Conflicting agent.
         """
 
-        self.message = f"'{agent}' is already registered to {self.name}."
+        self.env = env
+        self.agent = agent
+        self.message = (
+            f"'{self.env}' already has a registered agent with "
+            f"name '{agent}'."
+        )
 
     def __str__(self):
         return self.message
@@ -111,7 +152,7 @@ class RegistrationFailed(Exception):
         i : object
         """
 
-        t = type(instance)
+        t = type(i)
         self.message = f"'{i}', type '{t}' not recognized for registration."
 
     def __str__(self):

@@ -1,4 +1,4 @@
-"""Marmot test package."""
+"""Tests for `Object` base class."""
 
 __author__ = "Jake Nunemaker"
 __copyright__ = "Copyright 2019, Jake Nunemaker"
