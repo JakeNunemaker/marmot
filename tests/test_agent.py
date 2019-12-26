@@ -6,6 +6,7 @@ __email__ = "jake.d.nunemaker@gmail.com"
 __status__ = "Development"
 
 
+import simpy
 import pytest
 
 from marmot import Agent, Environment, process
@@ -68,6 +69,19 @@ class TestAgent(Agent):
         """An initialize method."""
 
         self.pause_then_perform(5, 10)
+
+    @process
+    def wait_for_event(self, event, time):
+        """An example waiting function."""
+
+        yield event
+        yield self.perform(time)
+
+    @process
+    def trigger_event_after(self, event, time):
+
+        yield self.pause(time)
+        event.succeed()
 
 
 def test_creation():
@@ -153,3 +167,20 @@ def test_decorated_initialize_method():
 
     env.run()
     assert env.now == 15
+
+
+def test_event_trigger():
+
+    env = Environment("Test Environment")
+    agent1 = TestAgent("Agent 1")
+    agent2 = TestAgent("Agent 2")
+    env.register(agent1)
+    env.register(agent2)
+
+    event = simpy.Event(env)
+
+    agent1.wait_for_event(event, 25)
+    agent2.trigger_event_after(event, 25)
+
+    env.run()
+    assert env.now == 50
