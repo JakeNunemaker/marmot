@@ -1,4 +1,4 @@
-"""Tests for `Environment` base class."""
+"""Tests for the `marmot.Environment` class."""
 
 __author__ = "Jake Nunemaker"
 __copyright__ = "Copyright 2019, Jake Nunemaker"
@@ -7,15 +7,15 @@ __status__ = "Development"
 
 
 import pytest
+from simpy.core import EmptySchedule
 
 from marmot import Agent, Object, Environment
 from marmot.object import AlreadyRegistered
 from marmot.environment import RegistrationFailed, RegistrationConflict
 
 
-def test_registration():
+def test_registration(env):
 
-    env = Environment(name="Test Environment")
     obj = Object("Test Object")
     agent = Agent("Test Agent")
 
@@ -28,16 +28,14 @@ def test_registration():
     assert agent.env == env
 
 
-def test_failed_registration():
+def test_failed_registration(env):
 
-    env = Environment(name="Test Environment")
     with pytest.raises(RegistrationFailed):
         env.register("Invalid")
 
 
-def test_registration_conflict():
+def test_registration_conflict(env):
 
-    env = Environment(name="Test Environment")
     obj1 = Object("Test Object")
     obj2 = Object("Test Object")
     agent1 = Agent("Test Agent")
@@ -52,9 +50,8 @@ def test_registration_conflict():
         env.register(agent2)
 
 
-def test_deregistration_with_name():
+def test_deregistration_with_name(env):
 
-    env = Environment(name="Test Environment")
     agent = Agent("Test Agent")
 
     env.register(agent)
@@ -66,9 +63,8 @@ def test_deregistration_with_name():
     assert agent.env == None
 
 
-def test_deregistration_with_instance():
+def test_deregistration_with_instance(env):
 
-    env = Environment(name="Test Environment")
     agent = Agent("Test Agent")
 
     env.register(agent)
@@ -80,9 +76,8 @@ def test_deregistration_with_instance():
     assert agent.env == None
 
 
-def test_unknown_deregistration():
+def test_unknown_deregistration(env):
 
-    env = Environment(name="Test Environment")
     agent = Agent("Test Agent")
 
     env.register(agent)
@@ -106,3 +101,44 @@ def test_already_registered():
     env1.deregister(agent)
     env2.register(agent)
     assert len(env2._agents) == 1
+
+
+def test_scheduled_agents(env, ExampleAgent):
+
+    agent1 = ExampleAgent("Agent 1")
+    env.register(agent1)
+    agent1.pause(10)
+
+    assert len(env.scheduled_agents) == 1
+
+    agent2 = ExampleAgent("Agent 2")
+    env.register(agent2)
+    agent2.pause(10)
+
+    assert len(env.scheduled_agents) == 2
+    assert agent1 in env.scheduled_agents
+    assert agent2 in env.scheduled_agents
+
+
+def test_scheduled_agents_completeness(env, ExampleAgent):
+
+    agent1 = ExampleAgent("Agent 1")
+    env.register(agent1)
+    agent1.pause_then_perform(50, 20)
+
+    agent2 = ExampleAgent("Agent 2")
+    env.register(agent2)
+    agent2.pause(100)
+
+    agent3 = ExampleAgent("Agent 3")
+    env.register(agent3)
+    agent3.pause_then_perform(40, 60)
+
+    while True:
+
+        try:
+            assert None not in env.scheduled_agents
+            env.step()
+
+        except EmptySchedule:
+            break

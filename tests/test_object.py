@@ -1,4 +1,4 @@
-"""Tests for `Object` base class."""
+"""Tests for the `marmot.Object` class."""
 
 __author__ = "Jake Nunemaker"
 __copyright__ = "Copyright 2019, Jake Nunemaker"

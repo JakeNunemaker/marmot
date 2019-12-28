@@ -6,11 +6,13 @@ __email__ = "jake.d.nunemaker@gmail.com"
 __status__ = "Development"
 
 
+import simpy
+
 from .agent import Agent
 from .object import Object
 
 
-class Environment:
+class Environment(simpy.Environment):
     """Base environment class."""
 
     def __init__(self, name="Environment"):
@@ -23,6 +25,8 @@ class Environment:
             Environment name.
             Default: 'Environment'
         """
+
+        super().__init__()
 
         self.name = name
         self._agents = {}
@@ -42,6 +46,10 @@ class Environment:
         ----------
         instance : `Agent` | `Object`
             Instance to be registered.
+
+        Raises
+        ------
+        RegistrationFailed
         """
 
         if isinstance(instance, Agent):
@@ -61,6 +69,10 @@ class Environment:
         ----------
         agent : `Agent`
             Agent to be registered.
+
+        Raises
+        ------
+        RegistrationConflict
         """
 
         if str(agent) in self._agents.keys():
@@ -132,8 +144,7 @@ class RegistrationConflict(Exception):
         self.env = env
         self.agent = agent
         self.message = (
-            f"'{self.env}' already has a registered agent with "
-            f"name '{agent}'."
+            f"'{self.env}' already has a registered agent with " f"name '{agent}'."
         )
 
     def __str__(self):

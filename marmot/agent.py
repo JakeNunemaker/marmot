@@ -6,7 +6,43 @@ __email__ = "jake.d.nunemaker@gmail.com"
 __status__ = "Development"
 
 
+from functools import wraps
+
 from .object import Object
+
+
+def process(func):
+    """
+    Process decorator for `Agent` class.
+
+    Parameters
+    ----------
+    func : method
+        Function to be wrapped.
+
+    Raises
+    ------
+    AgentNotRegistered
+    AgentAlreadyScheduled
+    """
+
+    @wraps(func)
+    def wrapper(agent, *args, **kwargs):
+
+        env = getattr(agent, "env", None)
+        if env is None:
+            raise AgentNotRegistered(agent)
+
+        if agent in env.scheduled_agents:
+            raise AgentAlreadyScheduled(agent)
+
+        try:
+            return env.process(func(agent, *args, **kwargs), agent)
+
+        except ValueError:
+            return
+
+    return wrapper
 
 
 class Agent(Object):
@@ -25,3 +61,65 @@ class Agent(Object):
         """
 
         super().__init__(name)
+
+    @process
+    def timeout(self, time):
+        """
+        General timeout method used by an `Agent` to wait for the passage of
+        time. Requires the agent to to be registered with an `Environment`.
+
+        Parameters
+        ----------
+        time : int | float
+            Amount of time to wait for.
+
+        Raises
+        ------
+        AgentNotRegistered
+        """
+
+        if self.env is None:
+            raise AgentNotRegistered(self)
+
+        else:
+            yield self.env.timeout(time, agent=self)
+
+
+class AgentNotRegistered(Exception):
+    """Error for unregistered agents."""
+
+    def __init__(self, agent):
+        """
+        Creates an instance of AgentNotRegistered.
+
+        Parameters
+        ----------
+        agent : `Agent`
+            Unregistered agent.
+        """
+
+        self.agent = agent
+        self.message = f"Agent '{agent}' is not registered to an environment."
+
+    def __str__(self):
+        return self.message
+
+
+class AgentAlreadyScheduled(Exception):
+    """Error for agents scheduled more than once."""
+
+    def __init__(self, agent):
+        """
+        Creates an instance of AgentAlreadyScheduled.
+
+        Parameters
+        ----------
+        agent : `Agent`
+            Overscheduled agent.
+        """
+
+        self.agent = agent
+        self.message = f"Agent '{agent}' is already scheduled."
+
+    def __str__(self):
+        return self.message
