@@ -19,6 +19,11 @@ def process(func):
     ----------
     func : method
         Function to be wrapped.
+
+    Raises
+    ------
+    AgentNotRegistered
+    AgentAlreadyScheduled
     """
 
     @wraps(func)
@@ -28,9 +33,11 @@ def process(func):
         if env is None:
             raise AgentNotRegistered(agent)
 
+        if agent in env.scheduled_agents:
+            raise AgentAlreadyScheduled(agent)
+
         try:
-            process = env.process(func(agent, *args, **kwargs))
-            return process
+            return env.process(func(agent, *args, **kwargs), agent)
 
         except ValueError:
             return
@@ -55,6 +62,28 @@ class Agent(Object):
 
         super().__init__(name)
 
+    @process
+    def timeout(self, time):
+        """
+        General timeout method used by an `Agent` to wait for the passage of
+        time. Requires the agent to to be registered with an `Environment`.
+
+        Parameters
+        ----------
+        time : int | float
+            Amount of time to wait for.
+
+        Raises
+        ------
+        AgentNotRegistered
+        """
+
+        if self.env is None:
+            raise AgentNotRegistered(self)
+
+        else:
+            yield self.env.timeout(time, agent=self)
+
 
 class AgentNotRegistered(Exception):
     """Error for unregistered agents."""
@@ -71,6 +100,26 @@ class AgentNotRegistered(Exception):
 
         self.agent = agent
         self.message = f"Agent '{agent}' is not registered to an environment."
+
+    def __str__(self):
+        return self.message
+
+
+class AgentAlreadyScheduled(Exception):
+    """Error for agents scheduled more than once."""
+
+    def __init__(self, agent):
+        """
+        Creates an instance of AgentAlreadyScheduled.
+
+        Parameters
+        ----------
+        agent : `Agent`
+            Overscheduled agent.
+        """
+
+        self.agent = agent
+        self.message = f"Agent '{agent}' is already scheduled."
 
     def __str__(self):
         return self.message

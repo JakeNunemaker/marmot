@@ -46,6 +46,10 @@ class Environment(simpy.Environment):
         ----------
         instance : `Agent` | `Object`
             Instance to be registered.
+
+        Raises
+        ------
+        RegistrationFailed
         """
 
         if isinstance(instance, Agent):
@@ -65,6 +69,10 @@ class Environment(simpy.Environment):
         ----------
         agent : `Agent`
             Agent to be registered.
+
+        Raises
+        ------
+        RegistrationConflict
         """
 
         if str(agent) in self._agents.keys():
