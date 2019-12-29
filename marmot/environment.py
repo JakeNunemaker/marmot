@@ -17,7 +17,7 @@ from .object import Object
 class Environment(simpy.Environment):
     """Base environment class."""
 
-    _logs_required = ["agent", "action", "duration", "level"]
+    _action_required = ["agent", "action", "duration"]
 
     def __init__(self, name="Environment"):
         """
@@ -40,10 +40,11 @@ class Environment(simpy.Environment):
     def __repr__(self):
         return self.name
 
-    def submit_log(self, payload, level="INFO"):
+    def _submit_log(self, payload, level):
         """
-        Accepts a log `payload`, inserts the `level`, attempts to validate it
-        and appends it to `self._logs` if successful.
+        Accepts a log `payload`, inserts the `level` and appends it to
+        `self._logs`. If the level is 'ACTION', the action log is validated
+        with `self._validate_action` before being added to the log list.
 
         Parameters
         ----------
@@ -52,19 +53,16 @@ class Environment(simpy.Environment):
         level : str
         """
 
-        _level = payload.get("level", None)
-        if _level:
-            raise Warning(
-                f"'level' encountered in log payload and will be overwritten."
-            )
         payload["level"] = level
+        if level is "ACTION":
+            self._validate_action(payload)
 
-        validated = self._validate_log(payload)
-        self._logs.append(validated)
+        stamped = self._timestamp_log(payload)
+        self._logs.append(stamped)
 
-    def _validate_log(self, payload):
+    def _validate_action(self, payload):
         """
-        Validates a log payload against `self._logs_required`.
+        Validates an action log payload against `self._action_required`.
 
         Parameters
         ----------
@@ -72,12 +70,9 @@ class Environment(simpy.Environment):
             Log data.
         """
 
-        missing = set(self._logs_required).difference(set(payload.keys()))
+        missing = set(self._action_required).difference(set(payload.keys()))
         if missing:
-            raise LogMissingKeys(payload, missing)
-
-        validated = self._timestamp_log(payload)
-        return validated
+            raise ActionMissingKeys(payload, missing)
 
     def _timestamp_log(self, payload):
         """
@@ -184,17 +179,23 @@ class Environment(simpy.Environment):
 
     @property
     def logs(self):
-        """Returns the list of log payloads."""
+        """Returns list of all log payloads."""
 
         return self._logs
 
+    @property
+    def action_logs(self):
+        """Returns list of action log payloads."""
 
-class LogMissingKeys(Exception):
-    """Error for missing keys in a log."""
+        return [l for l in self._logs if l["level"] == "ACTION"]
+
+
+class ActionMissingKeys(Exception):
+    """Error for missing keys in an action log."""
 
     def __init__(self, payload, missing):
         """
-        Creates an instance of MissingLogKeys.
+        Creates an instance of ActionMissingKeys.
 
         Parameters
         ----------
@@ -206,7 +207,7 @@ class LogMissingKeys(Exception):
 
         self.payload = payload
         self.missing = missing
-        self.message = f"Log {payload} is missing required keys {missing}."
+        self.message = f"Action log {payload} is missing required key(s) {missing}."
 
     def __str__(self):
         return self.message

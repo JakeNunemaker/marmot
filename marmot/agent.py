@@ -84,6 +84,54 @@ class Agent(Object):
         else:
             yield self.env.timeout(time, agent=self)
 
+    def submit_action_log(self, action, duration, **kwargs):
+        """
+        Submits a log representing a completed `action` performed over time
+        `duration`. Additional log information can be passed through kwargs and
+        will be passed to the environment logs.
+
+        Parameters
+        ----------
+        action : str
+            Performed action.
+        duration : int | float
+            Duration of action.
+
+        Raises
+        ------
+        AgentNotRegistered
+        """
+
+        if self.env is None:
+            raise AgentNotRegistered(self)
+
+        else:
+            payload = {
+                **kwargs,
+                "agent": str(self),
+                "action": action,
+                "duration": float(duration),
+            }
+
+            self.env._submit_log(payload, level="ACTION")
+
+    def submit_debug_log(self, **kwargs):
+        """
+        Submits a generic log used for debugging processes.
+
+        Raises
+        ------
+        AgentNotRegistered
+        """
+
+        if self.env is None:
+            raise AgentNotRegistered(self)
+
+        else:
+            payload = {**kwargs, "agent": str(self)}
+
+            self.env._submit_log(payload, level="DEBUG")
+
 
 class AgentNotRegistered(Exception):
     """Error for unregistered agents."""
