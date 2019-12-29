@@ -6,6 +6,8 @@ __email__ = "jake.d.nunemaker@gmail.com"
 __status__ = "Development"
 
 
+from copy import deepcopy
+
 import simpy
 
 from .agent import Agent
@@ -14,6 +16,8 @@ from .object import Object
 
 class Environment(simpy.Environment):
     """Base environment class."""
+
+    _logs_required = ["agent", "action", "duration", "level"]
 
     def __init__(self, name="Environment"):
         """
@@ -29,11 +33,64 @@ class Environment(simpy.Environment):
         super().__init__()
 
         self.name = name
+        self._logs = []
         self._agents = {}
         self._objects = []
 
     def __repr__(self):
         return self.name
+
+    def submit_log(self, payload, level="INFO"):
+        """
+        Accepts a log `payload`, inserts the `level`, attempts to validate it
+        and appends it to `self._logs` if successful.
+
+        Parameters
+        ----------
+        payload : dict
+            Log data.
+        level : str
+        """
+
+        _level = payload.get("level", None)
+        if _level:
+            raise Warning(
+                f"'level' encountered in log payload and will be overwritten."
+            )
+        payload["level"] = level
+
+        validated = self._validate_log(payload)
+        self._logs.append(validated)
+
+    def _validate_log(self, payload):
+        """
+        Validates a log payload against `self._logs_required`.
+
+        Parameters
+        ----------
+        payload : dict
+            Log data.
+        """
+
+        missing = set(self._logs_required).difference(set(payload.keys()))
+        if missing:
+            raise LogMissingKeys(payload, missing)
+
+        validated = self._timestamp_log(payload)
+        return validated
+
+    def _timestamp_log(self, payload):
+        """
+        Adds the environment timestamp to an acceptable log `payload`.
+
+        Parameters
+        ----------
+        payload : dict
+            Log data.
+        """
+
+        payload["time"] = self.now
+        return payload
 
     def register(self, instance):
         """
@@ -124,6 +181,35 @@ class Environment(simpy.Environment):
         """Returns list of currently registered objects."""
 
         return self._objects
+
+    @property
+    def logs(self):
+        """Returns the list of log payloads."""
+
+        return self._logs
+
+
+class LogMissingKeys(Exception):
+    """Error for missing keys in a log."""
+
+    def __init__(self, payload, missing):
+        """
+        Creates an instance of MissingLogKeys.
+
+        Parameters
+        ----------
+        payload : dict
+            Log data.
+        missing : list
+            Missing keys.
+        """
+
+        self.payload = payload
+        self.missing = missing
+        self.message = f"Log {payload} is missing required keys {missing}."
+
+    def __str__(self):
+        return self.message
 
 
 class RegistrationConflict(Exception):
