@@ -184,7 +184,7 @@ class Environment(simpy.Environment):
         return self._logs
 
     @property
-    def action_logs(self):
+    def actions(self):
         """Returns list of action log payloads."""
 
         return [l for l in self._logs if l["level"] == "ACTION"]
