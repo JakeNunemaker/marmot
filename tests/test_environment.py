@@ -11,7 +11,11 @@ from simpy.core import EmptySchedule
 
 from marmot import Agent, Object, Environment
 from marmot.object import AlreadyRegistered
-from marmot.environment import RegistrationFailed, RegistrationConflict
+from marmot.environment import (
+    ActionMissingKeys,
+    RegistrationFailed,
+    RegistrationConflict,
+)
 
 
 def test_registration(env):
@@ -142,3 +146,9 @@ def test_scheduled_agents_completeness(env, ExampleAgent):
 
         except EmptySchedule:
             break
+
+
+def test_bad_action_log(env):
+
+    with pytest.raises(ActionMissingKeys):
+        env._submit_log({"action": "TestAction"}, level="ACTION")

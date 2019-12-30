@@ -6,6 +6,8 @@ __email__ = "jake.d.nunemaker@gmail.com"
 __status__ = "Development"
 
 
+from copy import deepcopy
+
 import simpy
 
 from .agent import Agent
@@ -14,6 +16,8 @@ from .object import Object
 
 class Environment(simpy.Environment):
     """Base environment class."""
+
+    _action_required = ["agent", "action", "duration"]
 
     def __init__(self, name="Environment"):
         """
@@ -29,11 +33,59 @@ class Environment(simpy.Environment):
         super().__init__()
 
         self.name = name
+        self._logs = []
         self._agents = {}
         self._objects = []
 
     def __repr__(self):
         return self.name
+
+    def _submit_log(self, payload, level):
+        """
+        Accepts a log `payload`, inserts the `level` and appends it to
+        `self._logs`. If the level is 'ACTION', the action log is validated
+        with `self._validate_action` before being added to the log list.
+
+        Parameters
+        ----------
+        payload : dict
+            Log data.
+        level : str
+        """
+
+        payload["level"] = level
+        if level is "ACTION":
+            self._validate_action(payload)
+
+        stamped = self._timestamp_log(payload)
+        self._logs.append(stamped)
+
+    def _validate_action(self, payload):
+        """
+        Validates an action log payload against `self._action_required`.
+
+        Parameters
+        ----------
+        payload : dict
+            Log data.
+        """
+
+        missing = set(self._action_required).difference(set(payload.keys()))
+        if missing:
+            raise ActionMissingKeys(payload, missing)
+
+    def _timestamp_log(self, payload):
+        """
+        Adds the environment timestamp to an acceptable log `payload`.
+
+        Parameters
+        ----------
+        payload : dict
+            Log data.
+        """
+
+        payload["time"] = self.now
+        return payload
 
     def register(self, instance):
         """
@@ -124,6 +176,41 @@ class Environment(simpy.Environment):
         """Returns list of currently registered objects."""
 
         return self._objects
+
+    @property
+    def logs(self):
+        """Returns list of all log payloads."""
+
+        return self._logs
+
+    @property
+    def actions(self):
+        """Returns list of action log payloads."""
+
+        return [l for l in self._logs if l["level"] == "ACTION"]
+
+
+class ActionMissingKeys(Exception):
+    """Error for missing keys in an action log."""
+
+    def __init__(self, payload, missing):
+        """
+        Creates an instance of ActionMissingKeys.
+
+        Parameters
+        ----------
+        payload : dict
+            Log data.
+        missing : list
+            Missing keys.
+        """
+
+        self.payload = payload
+        self.missing = missing
+        self.message = f"Action log {payload} is missing required key(s) {missing}."
+
+    def __str__(self):
+        return self.message
 
 
 class RegistrationConflict(Exception):

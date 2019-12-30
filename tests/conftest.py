@@ -38,6 +38,7 @@ def ExampleAgent():
             """
 
             yield self.timeout(time)
+            self.submit_action_log("Pause", time)
 
         @process
         def perform(self, time):
@@ -50,7 +51,9 @@ def ExampleAgent():
                 Time to puase for.
             """
 
+            self.submit_debug_log(status="Starting")
             yield self.timeout(time)
+            self.submit_action_log("Perform", time, status="Successful")
 
         @process
         def pause_then_perform(self, a, b):
@@ -74,7 +77,12 @@ def ExampleAgent():
         def wait_for_event(self, event, time):
             """An example waiting function."""
 
+            start = self.env.now
+            self.submit_debug_log(status="StartWaiting")
             yield event
+            waited = self.env.now - start
+            self.submit_action_log("WaitForEvent", waited, status="DoneWaiting")
+
             yield self.perform(time)
 
         @process
