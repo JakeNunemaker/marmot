@@ -28,6 +28,7 @@ extensions = [
     "sphinx.ext.coverage",
     "sphinx.ext.napoleon",
     "sphinx.ext.autosectionlabel",
+    "sphinx.ext.viewcode",
 ]
 
 master_doc = "contents"
