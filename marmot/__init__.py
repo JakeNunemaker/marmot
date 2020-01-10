@@ -8,6 +8,7 @@ __email__ = "jake.d.nunemaker@gmail.com"
 __status__ = "Development"
 
 
+from ._core import ge, gt, le, lt, true, false
 from .agent import Agent, process
 from .object import Object
 from .environment import Environment

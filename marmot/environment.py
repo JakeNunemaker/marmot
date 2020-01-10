@@ -7,7 +7,9 @@ __status__ = "Development"
 
 
 from copy import deepcopy
+from math import ceil
 
+import numpy as np
 import simpy
 
 from .agent import Agent
@@ -19,7 +21,7 @@ class Environment(simpy.Environment):
 
     _action_required = ["agent", "action", "duration"]
 
-    def __init__(self, name="Environment"):
+    def __init__(self, name="Environment", state=None):
         """
         Creates an instance of Environment.
 
@@ -28,11 +30,15 @@ class Environment(simpy.Environment):
         name : str
             Environment name.
             Default: 'Environment'
+        state : array-like
+            Time series representing the state of the environment throughout
+            time or iterations.
         """
 
         super().__init__()
 
         self.name = name
+        self.state = state
         self._logs = []
         self._agents = {}
         self._objects = []
@@ -54,7 +60,7 @@ class Environment(simpy.Environment):
         """
 
         payload["level"] = level
-        if level is "ACTION":
+        if level == "ACTION":
             self._validate_action(payload)
 
         stamped = self._timestamp_log(payload)
@@ -86,6 +92,175 @@ class Environment(simpy.Environment):
 
         payload["time"] = self.now
         return payload
+
+    @property
+    def state(self):
+        """
+        Returns forecast of `self.state`, starting at `ceil(self.now)`.
+        """
+
+        return self._state[ceil(self.now) :]
+
+    @state.setter
+    def state(self, data):
+        """
+        Sets the state data for the environment.
+
+        Parameters
+        ----------
+        data : np.ndarray | None
+        """
+
+        if data is None:
+            self._state = np.recarray(shape=(0,), formats=[])
+            return
+
+        elif not isinstance(data, np.ndarray):
+            raise TypeError(f"'state' data type '{type(data)}' not supported.")
+
+        self._state = data
+
+    def find_operational_window(self, n, **kwargs):
+        """
+        Finds the first window of length `n` that satisfies any valid
+        conditions in kwargs. Conditions should be of type `Condition` from
+        marmot._core and are applied the array corresponding to their key. This
+        method can be used to calculate the delay associated with operations
+        that can not be interrupted.
+
+        Examples
+        --------
+        - `n=5, windspeed=gt(10)` will calculate the delay until the first
+        window of length 5 where all values in `self.state['windspeed']` are
+        greater than 10.
+
+        Parameters
+        ----------
+        n : int
+            Length of required operational window.
+        """
+
+        if not self.state.size > 0:
+            print(f"State data not configured for '{self}'.")
+            return 0
+
+        forecast = self._apply_conditions(**kwargs)
+        delay = self._find_first_window(forecast, n)
+        return delay
+
+    def calculate_operational_delay(self, n, **kwargs):
+        """
+        Calculates the accumulated operational delay associated with an
+        operation of length `n` and any valid conditions in kwargs. Conditions
+        should be of type `Condition` from marmot._core and are applied the
+        array corresponding to their key. This method can be used to calculate
+        the delay associated with operations that can be interrupted.
+
+        Examples
+        --------
+        - `n=5, windspeed=gt(10)` will calculate the delay accumulated
+        throughout an operation of length 5 where `self.state['windspeed']`
+        must be greater than 10.
+
+        Parameters
+        ----------
+        n : int
+            Operation length.
+        """
+
+        if not self.state.size > 0:
+            print(f"State data not configured for '{self}'.")
+            return 0
+
+        forecast = self._apply_conditions(**kwargs)
+        delay = self._count_delays(forecast, n)
+        return delay
+
+    def _apply_conditions(self, **kwargs):
+        """
+        Applies any valid conditions found in kwargs to `self.state`, returning
+        a boolean array representing whether the operation can be processed for
+        each step.
+        """
+
+        keys = set(self.state.dtype.names).intersection(set(kwargs.keys()))
+        valid = {k: kwargs[k] for k in keys}
+
+        conditions = [v(self.state[k]) for k, v in valid.items()]
+        arr = np.all(conditions, axis=0)
+
+        return arr
+
+    @staticmethod
+    def _count_delays(arr, n):
+        """
+        Count the accumulated `False` values in `arr` until an operation of
+        length `n` can be completed.
+
+        Parameters
+        ----------
+        arr : np.ndarray
+            Boolean array.
+        n : int
+            Operation length in index steps.
+        """
+
+        arr = np.append(arr, False)
+        false = np.where(~arr)[0]
+
+        if false.size == 0:
+            delay = 0
+            return delay
+
+        elif false[0] >= n:
+            delay = 0
+            return delay
+
+        else:
+            elapsed = false[0]
+            diff = false[1:] - false[:-1] - 1
+
+            for i, val in enumerate(diff):
+                elapsed += val
+
+                if elapsed >= n:
+                    delay = i + 1
+                    return delay
+
+            raise Exception("Exhausted.")
+
+    @staticmethod
+    def _find_first_window(arr, n):
+        """
+        Find first window of `True` values, length `n` within `arr`.
+
+        Parameters
+        ----------
+        arr : np.ndarray
+            Boolean array.
+        n : int
+            Width of window in index steps.
+        """
+
+        arr = np.append(arr, False)
+        false = np.where(~arr)[0]
+
+        if false.size == 0:
+            delay = 0
+
+        elif false[0] >= n:
+            delay = 0
+
+        else:
+            diff = np.where((false[1:] - false[:-1] - 1) >= n)[0]
+
+            try:
+                delay = false[diff[0]] + 1
+
+            except IndexError:
+                delay = 0
+
+        return delay
 
     def register(self, instance):
         """
