@@ -12,7 +12,7 @@ from math import ceil
 import numpy as np
 import simpy
 
-from .agent import Agent
+from .agent import Agent, WindowNotFound
 from .object import Object
 
 
@@ -146,6 +146,10 @@ class Environment(simpy.Environment):
 
         forecast = self._apply_conditions(**kwargs)
         delay = self._find_first_window(forecast, n)
+
+        if delay is None:
+            raise WindowNotFound(n, **kwargs)
+
         return delay
 
     def calculate_operational_delay(self, n, **kwargs):
@@ -174,6 +178,10 @@ class Environment(simpy.Environment):
 
         forecast = self._apply_conditions(**kwargs)
         delay = self._count_delays(forecast, n)
+
+        if delay is None:
+            raise StateExhausted(len(self._state))
+
         return delay
 
     def _apply_conditions(self, **kwargs):
@@ -227,7 +235,7 @@ class Environment(simpy.Environment):
                     delay = i + 1
                     return delay
 
-            raise Exception("Exhausted.")
+            return None
 
     @staticmethod
     def _find_first_window(arr, n):
@@ -258,7 +266,7 @@ class Environment(simpy.Environment):
                 delay = false[diff[0]] + 1
 
             except IndexError:
-                delay = 0
+                delay = None
 
         return delay
 
@@ -370,7 +378,7 @@ class ActionMissingKeys(Exception):
 
     def __init__(self, payload, missing):
         """
-        Creates an instance of ActionMissingKeys.
+        Creates an instance of `ActionMissingKeys`.
 
         Parameters
         ----------
@@ -393,7 +401,7 @@ class RegistrationConflict(Exception):
 
     def __init__(self, env, agent):
         """
-        Creates an instance of RegistrationConflict.
+        Creates an instance of `RegistrationConflict`.
 
         Parameters
         ----------
@@ -418,7 +426,7 @@ class RegistrationFailed(Exception):
 
     def __init__(self, i):
         """
-        Creates an instance of RegistrationFailed.
+        Creates an instance of `RegistrationFailed`.
 
         Parameters
         ----------
@@ -427,6 +435,26 @@ class RegistrationFailed(Exception):
 
         t = type(i)
         self.message = f"'{i}', type '{t}' not recognized for registration."
+
+    def __str__(self):
+        return self.message
+
+
+class StateExhausted(Exception):
+    """Error raised at the end of state data."""
+
+    def __init__(self, length):
+        """
+        Creates an instance of `StateExhausted`.
+
+        Parameters
+        ----------
+        length : int
+            Total number of elements in state data.
+        """
+
+        self.length = length
+        self.message = f"State data exhausted at element {length:,.0f}."
 
     def __str__(self):
         return self.message

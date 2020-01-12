@@ -6,6 +6,7 @@ __email__ = "jake.d.nunemaker@gmail.com"
 __status__ = "Development"
 
 
+import numpy as np
 import pytest
 
 from marmot import Agent, Environment, process
@@ -96,5 +97,41 @@ def ExampleAgent():
 
 @pytest.fixture
 def env():
+
+    data = np.array(
+        [
+            (60, False),
+            (65, False),
+            (67, False),
+            (68, False),
+            (70, False),
+            (72, False),
+            (78, True),
+            (82, True),
+            (86, True),
+            (90, True),
+            (98, True),
+            (99, True),
+            (100, True),
+            (101, True),
+            (104, True),
+            (105, True),
+            (106, True),
+            (103, True),
+            (99, True),
+            (93, True),
+            (87, False),
+            (84, False),
+            (77, False),
+            (74, False),
+        ],
+        dtype=[("temp", "i8"), ("workday", "b")],
+    )
+
+    return Environment(name="Test Environment", state=data)
+
+
+@pytest.fixture
+def min_env():
 
     return Environment(name="Test Environment")
