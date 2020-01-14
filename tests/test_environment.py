@@ -235,6 +235,8 @@ def test_calculate_operational_delay(env, min_env):
     assert env.calculate_operational_delay(4, temp=lt(100)) == 0
     assert env.calculate_operational_delay(4, temp=lt(100), workday=true()) == 6
     assert env.calculate_operational_delay(8, temp=lt(100), workday=true()) == 12
+    with pytest.raises(StateExhausted):
+        env.calculate_operational_delay(19, temp=lt(100))
 
 
 def test_find_operational_window(env, min_env):
