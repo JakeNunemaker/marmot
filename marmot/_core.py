@@ -6,8 +6,20 @@ __email__ = "jake.d.nunemaker@gmail.com"
 __status__ = "Development"
 
 
-def gt(val):
-    def inner(arr):
+class Constraint:
+    pass
+
+
+class gt(Constraint):
+    def __init__(self, val):
+
+        if isinstance(val, (int, float)) and not isinstance(val, bool):
+            self.val = val
+
+        else:
+            raise TypeError(f"Constraint 'gt' requires a numeric input.")
+
+    def __call__(self, arr):
         """
         Returns boolean array where `arr` > `val`.
 
@@ -16,13 +28,23 @@ def gt(val):
         arr : array-like
         """
 
-        return arr > val
+        return arr > self.val
 
-    return inner
+    def __repr__(self):
+
+        return f" > {self.val}"
 
 
-def ge(val):
-    def inner(arr):
+class ge(Constraint):
+    def __init__(self, val):
+
+        if isinstance(val, (int, float)) and not isinstance(val, bool):
+            self.val = val
+
+        else:
+            raise TypeError(f"Constraint 'ge' requires a numeric input.")
+
+    def __call__(self, arr):
         """
         Returns boolean array where `arr` >= `val`.
 
@@ -31,13 +53,23 @@ def ge(val):
         arr : array-like
         """
 
-        return arr >= val
+        return arr >= self.val
 
-    return inner
+    def __repr__(self):
+
+        return f" >= {self.val}"
 
 
-def lt(val):
-    def inner(arr):
+class lt(Constraint):
+    def __init__(self, val):
+
+        if isinstance(val, (int, float)) and not isinstance(val, bool):
+            self.val = val
+
+        else:
+            raise TypeError(f"Constraint 'lt' requires a numeric input.")
+
+    def __call__(self, arr):
         """
         Returns boolean array where `arr` < `val`.
 
@@ -46,13 +78,23 @@ def lt(val):
         arr : array-like
         """
 
-        return arr < val
+        return arr < self.val
 
-    return inner
+    def __repr__(self):
+
+        return f" < {self.val}"
 
 
-def le(val):
-    def inner(arr):
+class le(Constraint):
+    def __init__(self, val):
+
+        if isinstance(val, (int, float)) and not isinstance(val, bool):
+            self.val = val
+
+        else:
+            raise TypeError(f"Constraint 'le' requires a numeric input.")
+
+    def __call__(self, arr):
         """
         Returns boolean array where `arr` <= `val`.
 
@@ -61,13 +103,18 @@ def le(val):
         arr : array-like
         """
 
-        return arr <= val
+        return arr <= self.val
 
-    return inner
+    def __repr__(self):
+
+        return f" <= {self.val}"
 
 
-def false():
-    def inner(arr):
+class false(Constraint):
+    def __init__(self):
+        pass
+
+    def __call__(self, arr):
         """
         Returns boolean array where `array` is `False`.
 
@@ -76,13 +123,18 @@ def false():
         arr : array-like
         """
 
-        return ~arr
+        return ~arr.astype(bool)
 
-    return inner
+    def __repr__(self):
+
+        return f" is False"
 
 
-def true():
-    def inner(arr):
+class true(Constraint):
+    def __init__(self):
+        pass
+
+    def __call__(self, arr):
         """
         Returns boolean array where `array` is `True`.
 
@@ -91,6 +143,8 @@ def true():
         arr : array-like
         """
 
-        return arr
+        return arr.astype(bool)
 
-    return inner
+    def __repr__(self):
+
+        return f" is True"

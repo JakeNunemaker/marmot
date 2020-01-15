@@ -6,12 +6,12 @@ __email__ = "jake.d.nunemaker@gmail.com"
 __status__ = "Development"
 
 
-from copy import deepcopy
 from math import ceil
 
 import numpy as np
 import simpy
 
+from ._core import Constraint
 from .agent import Agent, WindowNotFound
 from .object import Object
 
@@ -144,11 +144,12 @@ class Environment(simpy.Environment):
             print(f"State data not configured for '{self}'.")
             return 0
 
-        forecast = self._apply_conditions(**kwargs)
+        constraints = self._find_valid_constraints(**kwargs)
+        forecast = self._apply_constraints(constraints)
         delay = self._find_first_window(forecast, n)
 
         if delay is None:
-            raise WindowNotFound(n, **kwargs)
+            raise WindowNotFound(n, **constraints)
 
         return delay
 
@@ -176,7 +177,8 @@ class Environment(simpy.Environment):
             print(f"State data not configured for '{self}'.")
             return 0
 
-        forecast = self._apply_conditions(**kwargs)
+        constraints = self._find_valid_constraints(**kwargs)
+        forecast = self._apply_constraints(constraints)
         delay = self._count_delays(forecast, n)
 
         if delay is None:
@@ -184,18 +186,33 @@ class Environment(simpy.Environment):
 
         return delay
 
-    def _apply_conditions(self, **kwargs):
+    def _find_valid_constraints(self, **kwargs):
         """
-        Applies any valid conditions found in kwargs to `self.state`, returning
-        a boolean array representing whether the operation can be processed for
-        each step.
+        Finds any constraints in `kwargs` where the key matches a column name
+        in `self.state` and the value type is `Constraint`.
         """
 
         keys = set(self.state.dtype.names).intersection(set(kwargs.keys()))
-        valid = {k: kwargs[k] for k in keys}
+        valid = {
+            k: v for k, v in kwargs.items() if k in keys and isinstance(v, Constraint)
+        }
 
-        conditions = [v(self.state[k]) for k, v in valid.items()]
-        arr = np.all(conditions, axis=0)
+        return valid
+
+    def _apply_constraints(self, constraints):
+        """
+        Applies `constraints` to `self.state`, returning a boolean array
+        representing whether an operation can be processed for each step.
+
+        constraints : dict
+            Dictionary of `self.state` column names and respective constraints.
+            Format:
+            - Key: name corresponding to column in `self.state`.
+            - Value: `Constraint` to be applied.
+        """
+
+        _list = [v(self.state[k]) for k, v in constraints.items()]
+        arr = np.all(_list, axis=0)
 
         return arr
 

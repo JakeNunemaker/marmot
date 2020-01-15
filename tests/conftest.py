@@ -135,3 +135,25 @@ def env():
 def min_env():
 
     return Environment(name="Test Environment")
+
+
+@pytest.fixture
+def state():
+
+    data = np.array(
+        [
+            (60, False),
+            (65, False),
+            (67, False),
+            (68, False),
+            (70, False),
+            (72, False),
+            (78, True),
+            (82, True),
+            (86, True),
+            (90, True),
+        ],
+        dtype=[("temp", "i8"), ("workday", "b")],
+    )
+
+    return data

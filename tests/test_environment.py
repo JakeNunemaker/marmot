@@ -166,14 +166,29 @@ def test_env_state_shape(min_env, env):
     assert "workday" in env.state.dtype.names
 
 
-def test_apply_conditions(env):
+def test_find_valid_constraints(env):
+
+    valid1 = env._find_valid_constraints(temp=lt(10))
+    assert len(valid1) == 1
+
+    valid2 = env._find_valid_constraints(temp=10)
+    assert len(valid2) == 0
+
+    valid3 = env._find_valid_constraints(temp=lt(10), workday=true())
+    assert len(valid3) == 2
+
+    valid4 = env._find_valid_constraints(test=lt(10))
+    assert len(valid4) == 0
+
+
+def test_apply_constraints(env):
 
     # Temperature less than 100
     expected = np.concatenate(
         [np.array([True] * 12), np.array([False] * 6), np.array([True] * 6)]
     )
 
-    output = env._apply_conditions(temp=lt(100))
+    output = env._apply_constraints({"temp": lt(100)})
     assert all(output == expected)
 
     # Working hours 7am - 8pm
@@ -181,7 +196,7 @@ def test_apply_conditions(env):
         [np.array([False] * 6), np.array([True] * 14), np.array([False] * 4)]
     )
 
-    output = env._apply_conditions(workday=true())
+    output = env._apply_constraints({"workday": true()})
     assert all(output == expected)
 
     # Temperature less than 100, working hours 7am - 8pm
@@ -195,7 +210,7 @@ def test_apply_conditions(env):
         ]
     )
 
-    output = env._apply_conditions(temp=lt(100), workday=true())
+    output = env._apply_constraints({"temp": lt(100), "workday": true()})
     assert all(output == expected)
 
 
