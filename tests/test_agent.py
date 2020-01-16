@@ -1,4 +1,4 @@
-"""Tests for the `marmot.Agent` class."""
+"""Tests for the `marmot.Agent` class and `process` decorator."""
 
 __author__ = "Jake Nunemaker"
 __copyright__ = "Copyright 2019, Jake Nunemaker"
@@ -9,7 +9,13 @@ __status__ = "Development"
 import simpy
 import pytest
 
-from marmot.agent import AgentNotRegistered, AgentAlreadyScheduled
+from marmot import lt, true
+from marmot._exceptions import (
+    StateExhausted,
+    WindowNotFound,
+    AgentNotRegistered,
+    AgentAlreadyScheduled,
+)
 
 
 def test_creation(ExampleAgent):
@@ -116,3 +122,47 @@ def test_agent_already_scheduled(env, ExampleAgent):
 
     with pytest.raises(AgentAlreadyScheduled):
         agent.pause(10)
+
+
+def test_operational_window(env, ExampleAgent):
+
+    agent = ExampleAgent()
+    env.register(agent)
+
+    agent.operational_window(4, temp=lt(70))
+    env.run()
+    assert env.now == 0
+
+    agent.operational_window(4, temp=lt(100), workday=true())
+    env.run()
+    assert env.now == 6
+
+    with pytest.raises(WindowNotFound) as excinfo:
+        agent.operational_window(10, temp=lt(100))
+        env.run()
+
+        assert excinfo.value.agent == agent
+
+
+def test_operational_delay(env, ExampleAgent):
+
+    agent = ExampleAgent()
+    env.register(agent)
+
+    agent.operational_delay(4, temp=lt(70))
+    env.run()
+    assert env.now == 0
+
+    agent.operational_delay(4, temp=lt(100), workday=true())
+    env.run()
+    assert env.now == 6
+
+    agent.operational_delay(10, temp=lt(100))
+    env.run()
+    assert env.now == 12
+
+    with pytest.raises(StateExhausted) as excinfo:
+        agent.operational_delay(20, temp=lt(100))
+        env.run()
+
+        assert excinfo.value.agent == agent

@@ -9,6 +9,7 @@ __status__ = "Development"
 
 import os
 
+from ._core import ge, gt, le, lt, true, false
 from .agent import Agent, process
 from .object import Object
 from .environment import Environment

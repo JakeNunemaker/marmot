@@ -6,9 +6,16 @@ __email__ = "jake.d.nunemaker@gmail.com"
 __status__ = "Development"
 
 
+from math import ceil
 from functools import wraps
 
 from .object import Object
+from ._exceptions import (
+    StateExhausted,
+    WindowNotFound,
+    AgentNotRegistered,
+    AgentAlreadyScheduled,
+)
 
 
 def process(func):
@@ -63,26 +70,66 @@ class Agent(Object):
         super().__init__(name)
 
     @process
-    def timeout(self, time):
+    def operational_window(self, duration, **kwargs):
         """
-        General timeout method used by an `Agent` to wait for the passage of
+        Process method used to yield until a window of length `duration` that
+        satisfies any valid operational constraints in kwargs.
+
+        Parameters
+        ----------
+        duration : float | int
+            Duration of required window.
+            Rounded up to the nearest int.
+        """
+
+        try:
+            delay = self.env.find_operational_window(ceil(duration), **kwargs)
+
+        except WindowNotFound as e:
+            e.agent = self
+            raise e
+
+        yield self.timeout(delay)
+
+    @process
+    def operational_delay(self, duration, **kwargs):
+        """
+        Process method used to yield for accumulated operational delays
+        associated with an operation of length `duration` and any valid
+        operational constraints found in kwargs.
+
+        Parameters
+        ----------
+        duration : float | int
+            Duration of operation.
+            Rounded up to the nearest int.
+        """
+        try:
+            delay = self.env.calculate_operational_delay(ceil(duration), **kwargs)
+
+        except StateExhausted as e:
+            e.agent = self
+            raise e
+
+        yield self.timeout(delay)
+
+    @process
+    def timeout(self, duration):
+        """
+        General timeout method used by an `Agent` to yield for the passage of
         time. Requires the agent to to be registered with an `Environment`.
 
         Parameters
         ----------
-        time : int | float
-            Amount of time to wait for.
+        duration : int | float
+            Amount of time to yield for.
 
         Raises
         ------
         AgentNotRegistered
         """
 
-        if self.env is None:
-            raise AgentNotRegistered(self)
-
-        else:
-            yield self.env.timeout(time, agent=self)
+        yield self.env.timeout(duration, agent=self)
 
     def submit_action_log(self, action, duration, **kwargs):
         """
@@ -131,43 +178,3 @@ class Agent(Object):
             payload = {**kwargs, "agent": str(self)}
 
             self.env._submit_log(payload, level="DEBUG")
-
-
-class AgentNotRegistered(Exception):
-    """Error for unregistered agents."""
-
-    def __init__(self, agent):
-        """
-        Creates an instance of AgentNotRegistered.
-
-        Parameters
-        ----------
-        agent : `Agent`
-            Unregistered agent.
-        """
-
-        self.agent = agent
-        self.message = f"Agent '{agent}' is not registered to an environment."
-
-    def __str__(self):
-        return self.message
-
-
-class AgentAlreadyScheduled(Exception):
-    """Error for agents scheduled more than once."""
-
-    def __init__(self, agent):
-        """
-        Creates an instance of AgentAlreadyScheduled.
-
-        Parameters
-        ----------
-        agent : `Agent`
-            Overscheduled agent.
-        """
-
-        self.agent = agent
-        self.message = f"Agent '{agent}' is already scheduled."
-
-    def __str__(self):
-        return self.message

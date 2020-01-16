@@ -6,12 +6,15 @@ __email__ = "jake.d.nunemaker@gmail.com"
 __status__ = "Development"
 
 
+import numpy as np
 import pytest
 from simpy.core import EmptySchedule
 
-from marmot import Agent, Object, Environment
+from marmot import Agent, Object, Environment, lt, true
+from marmot.agent import WindowNotFound
 from marmot.object import AlreadyRegistered
 from marmot.environment import (
+    StateExhausted,
     ActionMissingKeys,
     RegistrationFailed,
     RegistrationConflict,
@@ -152,3 +155,110 @@ def test_bad_action_log(env):
 
     with pytest.raises(ActionMissingKeys):
         env._submit_log({"action": "TestAction"}, level="ACTION")
+
+
+def test_env_state_shape(min_env, env):
+
+    assert min_env.state.shape == (0,)
+
+    assert env.state.shape == (24,)
+    assert "temp" in env.state.dtype.names
+    assert "workday" in env.state.dtype.names
+
+
+def test_find_valid_constraints(env):
+
+    valid1 = env._find_valid_constraints(temp=lt(10))
+    assert len(valid1) == 1
+
+    valid2 = env._find_valid_constraints(temp=10)
+    assert len(valid2) == 0
+
+    valid3 = env._find_valid_constraints(temp=lt(10), workday=true())
+    assert len(valid3) == 2
+
+    valid4 = env._find_valid_constraints(test=lt(10))
+    assert len(valid4) == 0
+
+
+def test_apply_constraints(env):
+
+    # Temperature less than 100
+    expected = np.concatenate(
+        [np.array([True] * 12), np.array([False] * 6), np.array([True] * 6)]
+    )
+
+    output = env._apply_constraints({"temp": lt(100)})
+    assert all(output == expected)
+
+    # Working hours 7am - 8pm
+    expected = np.concatenate(
+        [np.array([False] * 6), np.array([True] * 14), np.array([False] * 4)]
+    )
+
+    output = env._apply_constraints({"workday": true()})
+    assert all(output == expected)
+
+    # Temperature less than 100, working hours 7am - 8pm
+    expected = np.concatenate(
+        [
+            np.array([False] * 6),
+            np.array([True] * 6),
+            np.array([False] * 6),
+            np.array([True] * 2),
+            np.array([False] * 4),
+        ]
+    )
+
+    output = env._apply_constraints({"temp": lt(100), "workday": true()})
+    assert all(output == expected)
+
+
+def test_count_delay(env):
+
+    arr1 = np.array([False, False, False, True, True])
+    assert env._count_delays(arr1, 1) == 3
+    assert env._count_delays(arr1, 2) == 3
+    assert env._count_delays(arr1, 3) == None
+
+    arr2 = np.array([True, True, False, False, True])
+    assert env._count_delays(arr2, 1) == 0
+    assert env._count_delays(arr2, 2) == 0
+    assert env._count_delays(arr2, 3) == 2
+    assert env._count_delays(arr2, 4) == None
+
+
+def test_find_first_window(env):
+
+    arr1 = np.array([False, False, False, True, True, True, False, False])
+    assert env._find_first_window(arr1, 1) == 3
+    assert env._find_first_window(arr1, 2) == 3
+    assert env._find_first_window(arr1, 3) == 3
+    assert env._find_first_window(arr1, 4) == None
+
+    arr2 = np.array([True, True, False, True, True, True])
+    assert env._find_first_window(arr2, 1) == 0
+    assert env._find_first_window(arr2, 2) == 0
+    assert env._find_first_window(arr2, 3) == 3
+    assert env._find_first_window(arr2, 4) == None
+
+
+def test_calculate_operational_delay(env, min_env):
+
+    assert min_env.calculate_operational_delay(4, temp=lt(100)) == 0
+
+    assert env.calculate_operational_delay(4, temp=lt(100)) == 0
+    assert env.calculate_operational_delay(4, temp=lt(100), workday=true()) == 6
+    assert env.calculate_operational_delay(8, temp=lt(100), workday=true()) == 12
+    with pytest.raises(StateExhausted):
+        env.calculate_operational_delay(19, temp=lt(100))
+
+
+def test_find_operational_window(env, min_env):
+
+    assert min_env.find_operational_window(4, temp=lt(100)) == 0
+
+    assert env.find_operational_window(4, temp=lt(100)) == 0
+    assert env.find_operational_window(4, temp=lt(100), workday=true()) == 6
+    with pytest.raises(WindowNotFound):
+        env.find_operational_window(8, temp=lt(100), workday=true())
