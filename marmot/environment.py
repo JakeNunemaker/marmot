@@ -12,8 +12,15 @@ import numpy as np
 import simpy
 
 from ._core import Constraint
-from .agent import Agent, WindowNotFound
+from .agent import Agent
 from .object import Object
+from ._exceptions import (
+    StateExhausted,
+    WindowNotFound,
+    ActionMissingKeys,
+    RegistrationFailed,
+    RegistrationConflict,
+)
 
 
 class Environment(simpy.Environment):
@@ -182,7 +189,7 @@ class Environment(simpy.Environment):
         delay = self._count_delays(forecast, n)
 
         if delay is None:
-            raise StateExhausted(len(self._state))
+            raise StateExhausted(len(self._state), **constraints)
 
         return delay
 
@@ -388,90 +395,3 @@ class Environment(simpy.Environment):
         """Returns list of action log payloads."""
 
         return [l for l in self._logs if l["level"] == "ACTION"]
-
-
-class ActionMissingKeys(Exception):
-    """Error for missing keys in an action log."""
-
-    def __init__(self, payload, missing):
-        """
-        Creates an instance of `ActionMissingKeys`.
-
-        Parameters
-        ----------
-        payload : dict
-            Log data.
-        missing : list
-            Missing keys.
-        """
-
-        self.payload = payload
-        self.missing = missing
-        self.message = f"Action log {payload} is missing required key(s) {missing}."
-
-    def __str__(self):
-        return self.message
-
-
-class RegistrationConflict(Exception):
-    """Error for conflicting agent names."""
-
-    def __init__(self, env, agent):
-        """
-        Creates an instance of `RegistrationConflict`.
-
-        Parameters
-        ----------
-        env : `Environment`
-            Environment where conflict occured.
-        agent : `Agent`
-            Conflicting agent.
-        """
-
-        self.env = env
-        self.agent = agent
-        self.message = (
-            f"'{self.env}' already has a registered agent with " f"name '{agent}'."
-        )
-
-    def __str__(self):
-        return self.message
-
-
-class RegistrationFailed(Exception):
-    """Error for failed registrations."""
-
-    def __init__(self, i):
-        """
-        Creates an instance of `RegistrationFailed`.
-
-        Parameters
-        ----------
-        i : object
-        """
-
-        t = type(i)
-        self.message = f"'{i}', type '{t}' not recognized for registration."
-
-    def __str__(self):
-        return self.message
-
-
-class StateExhausted(Exception):
-    """Error raised at the end of state data."""
-
-    def __init__(self, length):
-        """
-        Creates an instance of `StateExhausted`.
-
-        Parameters
-        ----------
-        length : int
-            Total number of elements in state data.
-        """
-
-        self.length = length
-        self.message = f"State data exhausted at element {length:,.0f}."
-
-    def __str__(self):
-        return self.message
