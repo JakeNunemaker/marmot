@@ -188,7 +188,7 @@ def test_apply_constraints(env):
         [np.array([True] * 12), np.array([False] * 6), np.array([True] * 6)]
     )
 
-    output = env._apply_constraints({"temp": lt(100)})
+    output = env._apply_constraints(env.state, constraints={"temp": lt(100)})
     assert all(output == expected)
 
     # Working hours 7am - 8pm
@@ -196,7 +196,7 @@ def test_apply_constraints(env):
         [np.array([False] * 6), np.array([True] * 14), np.array([False] * 4)]
     )
 
-    output = env._apply_constraints({"workday": true()})
+    output = env._apply_constraints(env.state, constraints={"workday": true()})
     assert all(output == expected)
 
     # Temperature less than 100, working hours 7am - 8pm
@@ -210,22 +210,30 @@ def test_apply_constraints(env):
         ]
     )
 
-    output = env._apply_constraints({"temp": lt(100), "workday": true()})
+    output = env._apply_constraints(
+        env.state, constraints={"temp": lt(100), "workday": true()}
+    )
     assert all(output == expected)
 
 
 def test_count_delay(env):
-
     arr1 = np.array([False, False, False, True, True])
-    assert env._count_delays(arr1, 1) == 3
-    assert env._count_delays(arr1, 2) == 3
+    assert env._count_delays(arr1, 1) == [3, 1]
+    assert env._count_delays(arr1, 2) == [3, 2]
     assert env._count_delays(arr1, 3) == None
 
     arr2 = np.array([True, True, False, False, True])
-    assert env._count_delays(arr2, 1) == 0
-    assert env._count_delays(arr2, 2) == 0
-    assert env._count_delays(arr2, 3) == 2
+    assert env._count_delays(arr2, 1) == [1]
+    assert env._count_delays(arr2, 2) == [2]
+    assert env._count_delays(arr2, 3) == [2, 2, 1]
     assert env._count_delays(arr2, 4) == None
+
+    arr3 = np.array([True, False, False, False, True, True, False, True])
+    assert env._count_delays(arr3, 1) == [1]
+    assert env._count_delays(arr3, 2) == [1, 3, 1]
+    assert env._count_delays(arr3, 3) == [1, 3, 2]
+    assert env._count_delays(arr3, 4) == [1, 3, 2, 1, 1]
+    assert env._count_delays(arr3, 5) == None
 
 
 def test_find_first_window(env):
@@ -243,22 +251,29 @@ def test_find_first_window(env):
     assert env._find_first_window(arr2, 4) == None
 
 
-def test_calculate_operational_delay(env, min_env):
+def test_calculate_operational_delays(env, min_env):
 
-    assert min_env.calculate_operational_delay(4, temp=lt(100)) == 0
+    assert min_env.calculate_operational_delays(4, constraints={"temp": lt(100)}) == [4]
 
-    assert env.calculate_operational_delay(4, temp=lt(100)) == 0
-    assert env.calculate_operational_delay(4, temp=lt(100), workday=true()) == 6
-    assert env.calculate_operational_delay(8, temp=lt(100), workday=true()) == 12
+    assert env.calculate_operational_delays(4, constraints={"temp": lt(100)}) == [4]
+    assert env.calculate_operational_delays(
+        4, constraints={"temp": lt(100), "workday": true()}
+    ) == [6, 4]
+    assert env.calculate_operational_delays(
+        8, constraints={"temp": lt(100), "workday": true()}
+    ) == [6, 6, 6, 2]
     with pytest.raises(StateExhausted):
-        env.calculate_operational_delay(19, temp=lt(100))
+        env.calculate_operational_delays(19, constraints={"temp": lt(100)})
 
 
 def test_find_operational_window(env, min_env):
 
-    assert min_env.find_operational_window(4, temp=lt(100)) == 0
+    assert min_env.find_operational_window(4, constraints={"temp": lt(100)}) == 0
 
-    assert env.find_operational_window(4, temp=lt(100)) == 0
-    assert env.find_operational_window(4, temp=lt(100), workday=true()) == 6
+    assert env.find_operational_window(4, constraints={"temp": lt(100)}) == 0
+    assert (
+        env.find_operational_window(4, constraints={"temp": lt(100), "workday": true()})
+        == 6
+    )
     with pytest.raises(WindowNotFound):
-        env.find_operational_window(8, temp=lt(100), workday=true())
+        env.find_operational_window(8, constraints={"temp": lt(100), "workday": true()})
