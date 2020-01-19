@@ -124,45 +124,49 @@ def test_agent_already_scheduled(env, ExampleAgent):
         agent.pause(10)
 
 
-def test_operational_window(env, ExampleAgent):
+def test_unsuspendable_task(env, ExampleAgent):
 
     agent = ExampleAgent()
     env.register(agent)
 
-    agent.operational_window(4, temp=lt(70))
+    agent.task("Task", 4, constraints={"temp": lt(70)})
     env.run()
-    assert env.now == 0
+    assert env.now == 4
 
-    agent.operational_window(4, temp=lt(100), workday=true())
+    agent.task("Task", 4, constraints={"temp": lt(100), "workday": true()})
     env.run()
-    assert env.now == 6
+    assert env.now == 10
+
+    assert len(env.logs) == 3
+    assert len(env.actions) == 3
 
     with pytest.raises(WindowNotFound) as excinfo:
-        agent.operational_window(10, temp=lt(100))
+        agent.task("Task", 10, constraints={"temp": lt(100)})
         env.run()
 
         assert excinfo.value.agent == agent
 
 
-def test_operational_delay(env, ExampleAgent):
+def test_suspendable_task(env, ExampleAgent):
 
     agent = ExampleAgent()
     env.register(agent)
 
-    agent.operational_delay(4, temp=lt(70))
+    agent.task("Task", 4, constraints={"temp": lt(70)}, suspendable=True)
     env.run()
-    assert env.now == 0
+    assert env.now == 4
 
-    agent.operational_delay(4, temp=lt(100), workday=true())
+    agent.task(
+        "Task", 8, constraints={"temp": lt(100), "workday": true()}, suspendable=True
+    )
     env.run()
-    assert env.now == 6
+    assert env.now == 20
 
-    agent.operational_delay(10, temp=lt(100))
-    env.run()
-    assert env.now == 12
+    assert len(env.logs) == 5
+    assert len(env.actions) == 5
 
     with pytest.raises(StateExhausted) as excinfo:
-        agent.operational_delay(20, temp=lt(100))
+        agent.task("Task", 20, constraints={"temp": lt(70)}, suspendable=True)
         env.run()
 
         assert excinfo.value.agent == agent
