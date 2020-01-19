@@ -6,6 +6,7 @@ __email__ = "jake.d.nunemaker@gmail.com"
 __status__ = "Development"
 
 
+import itertools
 from math import ceil
 
 import numpy as np
@@ -127,13 +128,13 @@ class Environment(simpy.Environment):
 
         self._state = data
 
-    def find_operational_window(self, n, **kwargs):
+    def find_operational_window(self, n, constraints):
         """
         Finds the first window of length `n` that satisfies any valid
         conditions in kwargs. Conditions should be of type `Condition` from
-        marmot._core and are applied the array corresponding to their key. This
-        method can be used to calculate the delay associated with operations
-        that can not be interrupted.
+        `marmot._core` and are applied the array corresponding to their key.
+        This method can be used to calculate the delay associated with
+        operations that can not be suspended.
 
         Examples
         --------
@@ -145,28 +146,38 @@ class Environment(simpy.Environment):
         ----------
         n : int
             Length of required operational window.
+        constraints : dict
+            Dictionary of `Constraints` applied to `self.env.state` columns
+            Format:
+            - Key: name corresponding to column in `self.state`.
+            - Value: `Constraint` to be applied.
+
+        Returns
+        -------
+        delay : int
+            Duration of delay until operational window begins.
         """
 
         if not self.state.size > 0:
             print(f"State data not configured for '{self}'.")
             return 0
 
-        constraints = self._find_valid_constraints(**kwargs)
-        forecast = self._apply_constraints(constraints)
+        valid = self._find_valid_constraints(**constraints)
+        forecast = self._apply_constraints(self.state, valid)
         delay = self._find_first_window(forecast, n)
 
         if delay is None:
-            raise WindowNotFound(n, **constraints)
+            raise WindowNotFound(n, **valid)
 
         return delay
 
-    def calculate_operational_delay(self, n, **kwargs):
+    def calculate_operational_delays(self, n, constraints):
         """
         Calculates the accumulated operational delay associated with an
         operation of length `n` and any valid conditions in kwargs. Conditions
-        should be of type `Condition` from marmot._core and are applied the
+        should be of type `Condition` from `marmot._core` and are applied the
         array corresponding to their key. This method can be used to calculate
-        the delay associated with operations that can be interrupted.
+        the delay associated with operations that can be suspended.
 
         Examples
         --------
@@ -178,25 +189,40 @@ class Environment(simpy.Environment):
         ----------
         n : int
             Operation length.
+        constraints : dict
+            Dictionary of `Constraints` applied to `self.env.state` columns
+            Format:
+            - Key: name corresponding to column in `self.state`.
+            - Value: `Constraint` to be applied.
+
+        Returns
+        -------
+        durations : list
+            List of delays and operation times.
         """
 
         if not self.state.size > 0:
             print(f"State data not configured for '{self}'.")
-            return 0
+            return [n]
 
-        constraints = self._find_valid_constraints(**kwargs)
-        forecast = self._apply_constraints(constraints)
-        delay = self._count_delays(forecast, n)
+        valid = self._find_valid_constraints(**constraints)
+        forecast = self._apply_constraints(self.state, valid)
+        durations = self._count_delays(forecast, n)
 
-        if delay is None:
-            raise StateExhausted(len(self._state), **constraints)
+        if durations is None:
+            raise StateExhausted(len(self._state), **valid)
 
-        return delay
+        return durations
 
     def _find_valid_constraints(self, **kwargs):
         """
         Finds any constraints in `kwargs` where the key matches a column name
         in `self.state` and the value type is `Constraint`.
+
+        Returns
+        -------
+        valid : dict
+            Valid constraints that apply to a column in `self.state`.
         """
 
         keys = set(self.state.dtype.names).intersection(set(kwargs.keys()))
@@ -206,19 +232,28 @@ class Environment(simpy.Environment):
 
         return valid
 
-    def _apply_constraints(self, constraints):
+    @staticmethod
+    def _apply_constraints(arr, constraints):
         """
-        Applies `constraints` to `self.state`, returning a boolean array
+        Applies `constraints` to `arr`, returning a boolean array
         representing whether an operation can be processed for each step.
 
+        Parameters
+        ----------
+        arr : np.ndarray
         constraints : dict
-            Dictionary of `self.state` column names and respective constraints.
+            Dictionary of `arr` column names and respective constraints.
             Format:
-            - Key: name corresponding to column in `self.state`.
+            - Key: name corresponding to column in `arr`.
             - Value: `Constraint` to be applied.
+
+        Returns
+        -------
+        arr : np.ndarray
+            Boolean array representing whether an operation can be processed.
         """
 
-        _list = [v(self.state[k]) for k, v in constraints.items()]
+        _list = [v(arr[k]) for k, v in constraints.items()]
         arr = np.all(_list, axis=0)
 
         return arr
@@ -235,31 +270,31 @@ class Environment(simpy.Environment):
             Boolean array.
         n : int
             Operation length in index steps.
+
+        Returns
+        -------
+        durations : list | None
+            List of delays and operation times or `None` if the required
+            operation length `n` is not met.
         """
 
-        arr = np.append(arr, False)
-        false = np.where(~arr)[0]
+        durations = []
+        for val, g in itertools.groupby(arr):
+            l = len(list(g))
 
-        if false.size == 0:
-            delay = 0
-            return delay
+            if val == True:
+                if l >= n:
+                    durations.append(n)
+                    return durations
 
-        elif false[0] >= n:
-            delay = 0
-            return delay
+                else:
+                    durations.append(l)
+                    n -= l
 
-        else:
-            elapsed = false[0]
-            diff = false[1:] - false[:-1] - 1
+            else:
+                durations.append(l)
 
-            for i, val in enumerate(diff):
-                elapsed += val
-
-                if elapsed >= n:
-                    delay = i + 1
-                    return delay
-
-            return None
+        return None
 
     @staticmethod
     def _find_first_window(arr, n):
@@ -272,6 +307,12 @@ class Environment(simpy.Environment):
             Boolean array.
         n : int
             Width of window in index steps.
+
+        Returns
+        -------
+        delay : int | None
+            Duration of delay until operational window begins or None if a
+            window of length `n` is not found.
         """
 
         arr = np.append(arr, False)
