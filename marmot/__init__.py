@@ -16,6 +16,7 @@ from .environment import Environment
 
 ROOT = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.abspath(os.path.join(ROOT, "../VERSION"))) as version_file:
+    # TODO: This breaks on install! Move VERSION into marmot/?
     VERSION = version_file.read().strip()
 
 
