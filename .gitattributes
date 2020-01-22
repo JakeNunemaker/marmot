@@ -1,1 +1,2 @@
 notebooks/* linguist-vendored
+marmot/_version.py export-subst
