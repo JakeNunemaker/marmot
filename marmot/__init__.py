@@ -7,17 +7,11 @@ __email__ = "jake.d.nunemaker@gmail.com"
 __status__ = "Development"
 
 
-import os
-
 from ._core import ge, gt, le, lt, true, false
 from .agent import Agent, process
 from .object import Object
+from ._version import get_versions
 from .environment import Environment
 
-ROOT = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.abspath(os.path.join(ROOT, "../VERSION"))) as version_file:
-    # TODO: This breaks on install! Move VERSION into marmot/?
-    VERSION = version_file.read().strip()
-
-
-__version__ = VERSION
+__version__ = get_versions()["version"]
+del get_versions
