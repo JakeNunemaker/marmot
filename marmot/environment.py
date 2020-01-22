@@ -253,10 +253,14 @@ class Environment(simpy.Environment):
             Boolean array representing whether an operation can be processed.
         """
 
-        _list = [v(arr[k]) for k, v in constraints.items()]
-        arr = np.all(_list, axis=0)
+        if constraints:
+            _list = [v(arr[k]) for k, v in constraints.items()]
+            arr = np.all(_list, axis=0)
 
-        return arr
+            return arr
+
+        else:
+            return np.repeat(True, arr.shape)
 
     @staticmethod
     def _count_delays(arr, n):

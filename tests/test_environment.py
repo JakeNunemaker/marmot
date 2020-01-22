@@ -183,6 +183,13 @@ def test_find_valid_constraints(env):
 
 def test_apply_constraints(env):
 
+    # No constraints
+    expected = np.repeat(True, 24)
+    output = env._apply_constraints(env.state, constraints={})
+
+    assert output.shape == expected.shape
+    assert all(output == expected)
+
     # Temperature less than 100
     expected = np.concatenate(
         [np.array([True] * 12), np.array([False] * 6), np.array([True] * 6)]
@@ -253,8 +260,16 @@ def test_find_first_window(env):
 
 def test_calculate_operational_delays(env, min_env):
 
+    # No state, no constraints
+    assert min_env.calculate_operational_delays(4, constraints={}) == [4]
+
+    # No state, with constraints
     assert min_env.calculate_operational_delays(4, constraints={"temp": lt(100)}) == [4]
 
+    # With state, no constraints
+    assert env.calculate_operational_delays(4, constraints={}) == [4]
+
+    # With state, with constraints
     assert env.calculate_operational_delays(4, constraints={"temp": lt(100)}) == [4]
     assert env.calculate_operational_delays(
         4, constraints={"temp": lt(100), "workday": true()}
@@ -268,8 +283,16 @@ def test_calculate_operational_delays(env, min_env):
 
 def test_find_operational_window(env, min_env):
 
+    # No state, no constraints
+    assert min_env.find_operational_window(4, constraints={}) == 0
+
+    # No state, with constraints
     assert min_env.find_operational_window(4, constraints={"temp": lt(100)}) == 0
 
+    # With state, no constraints
+    assert env.find_operational_window(4, constraints={}) == 0
+
+    # With state, with constraints
     assert env.find_operational_window(4, constraints={"temp": lt(100)}) == 0
     assert (
         env.find_operational_window(4, constraints={"temp": lt(100), "workday": true()})
