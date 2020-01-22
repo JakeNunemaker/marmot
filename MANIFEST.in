@@ -1,3 +1,2 @@
-include VERSION
 include versioneer.py
 include marmot/_version.py
