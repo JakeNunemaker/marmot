@@ -99,9 +99,7 @@ class Agent(Object):
 
         if suspendable:
             try:
-                durations = self.env.calculate_operational_delays(
-                    ceil(duration), constraints
-                )
+                durations = self.env.calculate_operational_delays(duration, constraints)
 
             except StateExhausted as e:
                 e.agent = self

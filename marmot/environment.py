@@ -159,7 +159,6 @@ class Environment(simpy.Environment):
         """
 
         if not self.state.size > 0:
-            print(f"State data not configured for '{self}'.")
             return 0
 
         valid = self._find_valid_constraints(**constraints)
@@ -202,7 +201,6 @@ class Environment(simpy.Environment):
         """
 
         if not self.state.size > 0:
-            print(f"State data not configured for '{self}'.")
             return [n]
 
         valid = self._find_valid_constraints(**constraints)
