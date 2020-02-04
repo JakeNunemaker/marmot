@@ -108,7 +108,7 @@ class Agent(Object):
             if len(durations) % 2 != 0:
                 first = durations.pop(0)
                 yield self.timeout(first)
-                self.submit_action_log(str(name), duration, **kwargs)
+                self.submit_action_log(str(name), first, **kwargs)
 
             for i, d in enumerate(durations):
                 yield self.timeout(d)
