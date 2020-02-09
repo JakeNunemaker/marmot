@@ -8,8 +8,8 @@ import versioneer
 
 ROOT = os.path.abspath(os.path.dirname(__file__))
 
-with open("README.rst", "r") as fh:
-    long_description = fh.read()
+with open(os.path.join(ROOT, "README.rst"), encoding="utf-8") as f:
+    long_description = f.read()
 
 
 setup(
