@@ -120,7 +120,7 @@ class Environment(simpy.Environment):
         """
 
         if data is None:
-            self._state = np.recarray(shape=(0,), formats=[])
+            self._state = np.recarray(shape=(0,), dtype=[])
             return
 
         elif not isinstance(data, np.ndarray):
@@ -180,9 +180,8 @@ class Environment(simpy.Environment):
 
         Examples
         --------
-        - `n=5, windspeed=gt(10)` will calculate the delay accumulated
-        throughout an operation of length 5 where `self.state['windspeed']`
-        must be greater than 10.
+        - `n=5, windspeed=gt(10)` will identify any delays during an operation
+        of length 5 where `self.state['windspeed']` must be greater than 10.
 
         Parameters
         ----------
