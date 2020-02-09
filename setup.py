@@ -22,7 +22,7 @@ setup(
         "Programming Language :: Python :: 3.7",
     ],
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
-    install_requires=["simpy-agents"],
+    install_requires=["numpy", "simpy-agents"],
     extras_requires={
         "dev": ["pre-commit", "black", "isort", "pytest>=5.1", "pytest-cov"]
     },
