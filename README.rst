@@ -2,15 +2,13 @@
 marmot
 ======
 
-Agent based process modeling.
+Marmot is an extension of `SimPy <https://simpy.readthedocs.io/en/latest/>`_
+that makes it easier to build agent-based process models. Marmot allows a user
+to model the actions of discrete agents acting within an environment.
 
 :Version: 0.2.4
 :Authors: `Jake Nunemaker <https://www.linkedin.com/in/jake-nunemaker/>`_
 :Documentation: Coming soon!
-
-Marmot is an extension of `SimPy <https://simpy.readthedocs.io/en/latest/>`_
-that makes it easier to build agent-based process models. Marmot allows a user
-to model the actions of discrete agents acting within an environment.
 
 Getting Started
 ---------------
@@ -19,7 +17,7 @@ Getting Started
 
    from marmot import Environment, Agent
 
-   # To build a basic model, an agent must be created and registered to an environment
+   # An agent must be created and registered to an environment
    env = Environment()
    agent = Agent("Test Agent")
    env.register(agent)
