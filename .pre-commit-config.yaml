@@ -20,15 +20,11 @@ repos:
     -   id: trailing-whitespace
     -   id: end-of-file-fixer
     -   id: check-executables-have-shebangs
-    -   id: check-json
-    -   id: check-yaml
     -   id: check-merge-conflict
     -   id: check-symlinks
     -   id: flake8
         exclude: ^tests/
     -   id: mixed-line-ending
-    -   id: pretty-format-json
-        args: [--autofix]
 
 -   repo: https://github.com/pre-commit/mirrors-pylint
     rev: v2.1.1
