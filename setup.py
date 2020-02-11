@@ -16,11 +16,14 @@ setup(
     name="Marmot",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    description=long_description,
+    description="Agent based processs modeling.",
+    long_description=long_description,
     classifiers=[
         "Development Status :: 4 - Beta",
         "Programming Language :: Python :: 3.7",
     ],
+    license="BSD-3",
+    url="https://github.com/JakeNunemaker/marmot",
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     install_requires=["numpy", "simpy-agents"],
     extras_requires={
