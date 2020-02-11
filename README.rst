@@ -25,7 +25,7 @@ Getting Started
    env.register(agent)
 
    # The registered agent can now be scheduled to perform tasks
-   agent.task("Run", 10)  # The agent is scheduled to run for 10 time steps
+   agent.task("Run", 10)  # The agent is scheduled to run for 10 units of time
 
    # The simulation must be ran
    env.run()
