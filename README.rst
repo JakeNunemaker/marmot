@@ -1,5 +1,5 @@
 
-marmot
+Marmot
 ======
 
 Marmot is an extension of `SimPy <https://simpy.readthedocs.io/en/latest/>`_
@@ -9,6 +9,11 @@ to model the actions of discrete agents acting within an environment.
 :Version: 0.2.4
 :Authors: `Jake Nunemaker <https://www.linkedin.com/in/jake-nunemaker/>`_
 :Documentation: Coming soon!
+
+Installation
+------------
+
+``pip install marmot-agents``
 
 Getting Started
 ---------------
