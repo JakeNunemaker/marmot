@@ -13,7 +13,7 @@ with open(os.path.join(ROOT, "README.rst"), encoding="utf-8") as f:
 
 
 setup(
-    name="Marmot",
+    name="marmot-agents",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     description="Agent based processs modeling.",
