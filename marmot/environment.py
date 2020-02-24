@@ -10,7 +10,8 @@ import itertools
 from math import ceil
 
 import numpy as np
-import simpy
+
+import _simpy
 
 from ._core import Constraint
 from .agent import Agent
@@ -24,7 +25,7 @@ from ._exceptions import (
 )
 
 
-class Environment(simpy.Environment):
+class Environment(_simpy.Environment):
     """Base environment class."""
 
     _action_required = ["agent", "action", "duration"]

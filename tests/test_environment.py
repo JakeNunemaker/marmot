@@ -8,9 +8,9 @@ __status__ = "Development"
 
 import numpy as np
 import pytest
-from simpy.core import EmptySchedule
 
 from marmot import Agent, Object, Environment, lt, true
+from _simpy.core import EmptySchedule
 from marmot.agent import WindowNotFound
 from marmot.object import AlreadyRegistered
 from marmot.environment import (

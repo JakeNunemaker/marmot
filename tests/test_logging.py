@@ -6,7 +6,7 @@ __email__ = "jake.d.nunemaker@gmail.com"
 __status__ = "Development"
 
 
-import simpy
+import _simpy
 
 
 def test_single_agent_logging(env, ExampleAgent):
@@ -35,7 +35,7 @@ def test_multiple_agent_logging(env, ExampleAgent):
     env.register(agent1)
     env.register(agent2)
 
-    event = simpy.Event(env)
+    event = _simpy.Event(env)
 
     agent1.wait_for_event(event, 25)
     agent2.trigger_event_after(event, 25)

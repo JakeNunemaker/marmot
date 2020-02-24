@@ -6,9 +6,9 @@ __email__ = "jake.d.nunemaker@gmail.com"
 __status__ = "Development"
 
 
-import simpy
 import pytest
 
+import _simpy
 from marmot import lt, true
 from marmot._exceptions import (
     StateExhausted,
@@ -104,7 +104,7 @@ def test_event_trigger(env, ExampleAgent):
     env.register(agent1)
     env.register(agent2)
 
-    event = simpy.Event(env)
+    event = _simpy.Event(env)
 
     agent1.wait_for_event(event, 25)
     agent2.trigger_event_after(event, 25)
