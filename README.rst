@@ -6,7 +6,7 @@ Marmot is an extension of `_simpy <https://_simpy.readthedocs.io/en/latest/>`_
 that makes it easier to build agent-based process models. Marmot allows a user
 to model the actions of discrete agents acting within an environment.
 
-:Version: 0.2.4
+:Version: 0.2.5
 :Authors: `Jake Nunemaker <https://www.linkedin.com/in/jake-nunemaker/>`_
 :Documentation: Coming soon!
 
