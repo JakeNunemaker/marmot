@@ -1,4 +1,4 @@
-"""Agent based process modeling using SimPy."""
+"""Agent based process modeling using _simpy."""
 
 __author__ = "Jake Nunemaker"
 __copyright__ = "Copyright 2019, Jake Nunemaker"
